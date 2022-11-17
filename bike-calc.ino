@@ -1,84 +1,26 @@
-#include <LcdEffects.h>
-#include <Effects.h>
 #include <LiquidCrystal.h>
+#include "printing.h"
+#include "print_stats.h"
 #define pick 2
 
 const int rs = 7, en = 8, d4 = 9, d5 = 10, d6 = 11, d7 = 12;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
-int selector, max_analog_val = 1023;
-int lastsel;
-
-double d, td;           //distance, total distance
-double v, tv;        //velocity
-double te, tte;      //time elapsed
+int selector, lastsel; //math counter
+const int max_analog_val = 1023;
+//ws = wheel size
+double d = 0, td = 0, tad = 0;     //distance, total distance, total average distance
+double v = -1, av = -1, tav = -1;     //velocity
+double te, tte;        //time elapsed
 double power, tpower;
 
-byte inner_pipe_r[8] = {
-  0b00001,
-  0b00001,
-  0b00001,
-  0b00001,
-  0b00001,
-  0b00001,
-  0b00001,
-  0b00001
-};
-
-byte inner_pipe_l[8] = {
-  0b10000,
-  0b10000,
-  0b10000,
-  0b10000,
-  0b10000,
-  0b10000,
-  0b10000,
-  0b10000
-};
-
-byte larrow[8] = {
-  0b00010,
-  0b00110,
-  0b01111,
-  0b11111,
-  0b11111,
-  0b01111,
-  0b00110,
-  0b00010
-};
-
-byte rarrow[8] = {
-  0b01000,
-  0b01100,
-  0b11110,
-  0b11111,
-  0b11111,
-  0b11110,
-  0b01100,
-  0b01000
-};
-
-byte kms[8] = {
-  0b10010,
-  0b10100,
-  0b11000,
-  0b10110,
-  0b00000,
-  0b00000,
-  0b11010,
-  0b10101
-};
-
-byte time[8] = {
-  0b00000,
-  0b01110,
-  0b11011,
-  0b11011,
-  0b11001,
-  0b11111,
-  0b01110,
-  0b00000
-};
+//aesthetic purposes
+byte inner_pipe_r[8] = { 0b00001, 0b00001, 0b00001, 0b00001, 0b00001, 0b00001, 0b00001, 0b00001 };
+byte inner_pipe_l[8] = { 0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b10000 };
+byte larrow[8]       = { 0b00010, 0b00110, 0b01111, 0b11111, 0b11111, 0b01111, 0b00110, 0b00010 };
+byte rarrow[8]       = { 0b01000, 0b01100, 0b11110, 0b11111, 0b11111, 0b11110, 0b01100, 0b01000 };
+byte kms[8]          = { 0b10010, 0b10100, 0b11000, 0b10110, 0b00000, 0b00000, 0b11010, 0b10101 };
+byte time[8]         = { 0b00000, 0b01110, 0b11011, 0b11011, 0b11001, 0b11111, 0b01110, 0b00000 };
 
 void setup() {
   Serial.begin(9600);
@@ -90,143 +32,52 @@ void setup() {
   lcd.createChar(4, kms);
   lcd.createChar(5, time);
   lcd.begin(16, 2);
-
-}
-  
-void pbars(){
-  lcd.setCursor(7, 0);
-  lcd.write(byte(1));
-  lcd.write(byte(0));
-  
-  lcd.setCursor(7, 1);
-  lcd.write(byte(1));
-  lcd.write(byte(0));
 }
 
-//print speed arrows
-void psarr(){
-  lcd.setCursor(0, 0);
-  lcd.write(byte(3));
+//timer
+//math
+//stop time, do math
+//start timer
+const double ws = 76.2;
+const int no_counts = 4;
+int math_count = 0;
+unsigned long start, lap;
+bool flip = false;
 
-  lcd.setCursor(6, 0);
-  lcd.write(byte(2));
-}
+//ROUGH at the moment
 
-void dsarr(){
-  lcd.setCursor(0, 0);
-  lcd.write(' ');
+bool do_the_math(){
+  //magnet sensor
+  int mag_sens = analogRead(A5);
 
-  lcd.setCursor(6, 0);
-  lcd.write(' ');
-}
+  if(math_count == 0){
+    start = micros();
+  }
 
-void pdarr(){
-  lcd.setCursor(9, 0);
-  lcd.write(byte(3));
+  if(mag_sens <= 520){
+    flip = true;
+  }
+  Serial.print(mag_sens);
+  Serial.print('\n');
+  delay(100);
 
-  lcd.setCursor(15, 0);
-  lcd.write(byte(2));
-}
 
-void ddarr(){
-  lcd.setCursor(9, 0);
-  lcd.write(' ');
+  if(mag_sens > 520 && flip){
+    Serial.print(mag_sens);
+    Serial.print('\n');
+    math_count ++;
+    d += ws;
+    flip = false;
+  }
 
-  lcd.setCursor(15, 0);
-  lcd.write(' ');
-}
+  if(math_count == no_counts){
+    lap = micros();
+    v = (no_counts * ws)/(lap - start);
+    math_count = 0;
+    return true;
+  }
 
-void pparr(){
-  lcd.setCursor(0, 1);
-  lcd.write(byte(3));
-
-  lcd.setCursor(6, 1);
-  lcd.write(byte(2));
-}
-
-void dparr(){
-  lcd.setCursor(0, 1);
-  lcd.write(' ');
-
-  lcd.setCursor(6, 1);
-  lcd.write(' ');
-}
-
-void ptarr(){
-  lcd.setCursor(9, 1);
-  lcd.write(byte(3));
-
-  lcd.setCursor(15, 1);
-  lcd.write(byte(2));
-}
-
-void dtarr(){
-  lcd.setCursor(9, 1);
-  lcd.write(' ');
-
-  lcd.setCursor(15, 1);
-  lcd.write(' ');
-}
-
-void pspeed(){
-  lcd.setCursor(1, 0);
-  lcd.print("speed");    
-}
-
-void pdist(){
-  lcd.setCursor(10, 0);
-  lcd.print("dist");
-  lcd.write(byte(4));
-}
-
-void ppower(){
-  lcd.setCursor(1, 1);
-  lcd.print("power"); 
-}
-
-void pptime(){
-  lcd.setCursor(10, 1);
-  lcd.print("time"); 
-  lcd.write(byte(5));
-}
-
-void clear_screen(){
-  lcd.setCursor(0, 0);
-  lcd.print("                ");
-  lcd.setCursor(0, 1);
-  lcd.print("                ");
-}
-
-void print_the_speed(){
-  v = 46.3;
-
-  lcd.setCursor(0, 0);
-  lcd.print("speed");
-  lcd.setCursor(12, 0);
-  lcd.print("km/h");
-
-  lcd.setCursor(6, 0);
-  lcd.print(v);
-  
-}
-
-void print_speed_stats(){
-  tv = 123/5;
-
-  lcd.setCursor(0, 1);
-  lcd.print("t-avg");
-  lcd.setCursor(12, 1);
-  lcd.print("km/h");
-  lcd.setCursor(6, 1);
-  lcd.print(tv-2.1);
-
-  lcd.setCursor(0, 0);
-  lcd.print("avg");
-  lcd.setCursor(12, 0);
-  lcd.print("km/h");
-
-  lcd.setCursor(6, 0);
-  lcd.print(tv);
+  return false;
 }
 
 void speed_menu(){
@@ -249,42 +100,14 @@ void speed_menu(){
     }
 
     if(tp % 4 >= 2){
-      print_speed_stats();
+      print_speed_averages(av, tav);
     } 
     else
-      print_the_speed();
+      print_the_speed(v);
 
     if(tp == 8) 
       tp = 0;
   }
-}
-
-void print_the_dist(){
-  lcd.setCursor(0, 0);
-  lcd.print("trip");
-  lcd.setCursor(14, 0);
-  lcd.print("km");
-
-  lcd.setCursor(6, 0);
-  lcd.print(d);
-}
-
-void print_dist_stats(){
-  lcd.setCursor(0, 0);
-  lcd.print("t-avg");
-  lcd.setCursor(14, 0);
-  lcd.print("km");
-
-  lcd.setCursor(6, 0);
-  lcd.print(d-7.21);
-
-  lcd.setCursor(0, 1);
-  lcd.print("total");
-  lcd.setCursor(14, 1);
-  lcd.print("km");
-    
-  lcd.setCursor(6, 1);
-  lcd.print(td);
 }
 
 void dist_menu(){
@@ -294,9 +117,6 @@ void dist_menu(){
   //previous press
   int cur_read = digitalRead(pick);
   int pp = cur_read;
-  
-  d = 12.3;
-  td = d * 53;
 
   while(lastsel < selector + 10 && lastsel > selector - 10){
     selector = analogRead(A0);
@@ -311,10 +131,10 @@ void dist_menu(){
     }
 
     if(tp % 4 >= 2){
-      print_dist_stats();
+      print_dist_stats(td, tad);
     } 
     else
-      print_the_dist();
+      print_the_dist(d);
 
     if(tp == 8) 
       tp = 0; 
@@ -345,11 +165,10 @@ void loop() {
   pspeed();
   pdist();
   ppower();
-  pptime();
+  ptime();
 
-  Serial.print(selector); Serial.print('\n');
-  Serial.print(max_analog_val/4); Serial.print('\n');
-  
+  do_the_math();
+
   //speed
   if(selector >= max_analog_val / 4 * 3){
     psarr();
