@@ -8,7 +8,6 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 int selector, lastsel; //math counter
 const int max_analog_val = 1023;
-//ws = wheel size
 double d = 0, td = 0, tad = 0;     //distance, total distance, total average distance
 double v = -1, av = -1, tav = -1;     //velocity
 double te, tte;        //time elapsed
@@ -25,12 +24,14 @@ byte time[8]         = { 0b00000, 0b01110, 0b11011, 0b11011, 0b11001, 0b11111, 0
 void setup() {
   Serial.begin(9600);
   pinMode(pick, INPUT_PULLUP);
+  //special characters to print to the lcd
   lcd.createChar(0, inner_pipe_l);
   lcd.createChar(1, inner_pipe_r);
   lcd.createChar(2, larrow);
   lcd.createChar(3, rarrow);
   lcd.createChar(4, kms);
   lcd.createChar(5, time);
+
   lcd.begin(16, 2);
 }
 
@@ -38,41 +39,37 @@ void setup() {
 //math
 //stop time, do math
 //start timer
-const double ws = 76.2;
+const double wheel_perimeter = 76.2;//wheel size
 const int no_counts = 4;
 int math_count = 0;
 unsigned long start, lap;
-bool flip = false;
+bool sensor_trigger = false;
 
 //ROUGH at the moment
 
+//returns true if any actual math has been done
 bool do_the_math(){
   //magnet sensor
-  int mag_sens = analogRead(A5);
+  int sensor = analogRead(A5);
 
   if(math_count == 0){
     start = micros();
   }
 
-  if(mag_sens <= 520){
-    flip = true;
+  if(sensor <= 520){
+    sensor_trigger = true;
   }
-  Serial.print(mag_sens);
-  Serial.print('\n');
-  delay(100);
 
-
-  if(mag_sens > 520 && flip){
-    Serial.print(mag_sens);
-    Serial.print('\n');
+  if(sensor > 520 && sensor_trigger){
     math_count ++;
-    d += ws;
-    flip = false;
+    d += wheel_perimeter;
+    sensor_trigger = false;
   }
 
+  //after a number of wheel rotations counted by math_count, the speed is calculated
   if(math_count == no_counts){
     lap = micros();
-    v = (no_counts * ws)/(lap - start);
+    v = (no_counts * wheel_perimeter)/(lap - start);
     math_count = 0;
     return true;
   }
