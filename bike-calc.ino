@@ -85,7 +85,8 @@ void speed_menu(){
   int cur_read = digitalRead(pick);
   int pp = cur_read;
   while(lastsel < selector + 20 && lastsel > selector - 20){
-    
+    do_the_math();
+
     selector = analogRead(A0);
     cur_read = digitalRead(pick);
 
@@ -116,6 +117,8 @@ void dist_menu(){
   int pp = cur_read;
 
   while(lastsel < selector + 10 && lastsel > selector - 10){
+    do_the_math();
+
     selector = analogRead(A0);
     
     cur_read = digitalRead(pick);
@@ -141,6 +144,8 @@ void dist_menu(){
 void time_menu(){
   clear_screen();
   while(lastsel < selector + 10 && lastsel > selector - 10){
+    do_the_math();
+
     selector = analogRead(A0);
     lcd.setCursor(0, 0);
     lcd.print(" it's time bro ");
@@ -150,6 +155,8 @@ void time_menu(){
 void power_menu(){
   clear_screen();
   while(lastsel < selector + 10 && lastsel > selector - 10){
+    do_the_math();
+    
     selector = analogRead(A0);
     lcd.setCursor(0, 0);
     lcd.print("UNLIMITED POWER!");
