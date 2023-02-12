@@ -57,19 +57,21 @@ bool do_the_math(){
   }
 
   if(sensor <= 520){
-    sensor_trigger = true;
+    sensor_trigger = false;
   }
 
-  if(sensor > 520 && sensor_trigger){
+  if(sensor > 520 && !sensor_trigger){
     math_count ++;
     d += wheel_perimeter;
-    sensor_trigger = false;
+    sensor_trigger = true;
   }
 
   //after a number of wheel rotations counted by math_count, the speed is calculated
   if(math_count == no_counts){
     lap = micros();
+    
     v = (no_counts * wheel_perimeter)/(lap - start);
+    
     math_count = 0;
     return true;
   }
