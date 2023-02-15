@@ -5,6 +5,7 @@ You can find a simulation of this project on my wokwi.com accout: https://wokwi.
 
 # Design
 The whole project is going to be soldered and stuck inside a Ferrero Rocher transparrent candy box with some potentiometers and buttons sticking out to navigate the menu. The display consists of an LCD 2X16 display. Below is a hand drawn wiring diagram for this project:
+
 ![wiring diagram](https://github.com/mircea-mihail/bike-calc/blob/main/bike-calc-wiring-diagram.jpg)
 
 # Progress
