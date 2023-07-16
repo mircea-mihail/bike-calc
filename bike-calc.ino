@@ -1,38 +1,63 @@
 #include <LiquidCrystal.h>
 #include "printing.h"
 #include "print_stats.h"
-#define pick 2
 
-const int rs = 7, en = 8, d4 = 9, d5 = 10, d6 = 11, d7 = 12;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+#define PICK_BUTTON 2
+#define SELECTOR_TRESHOLD 10
+#define SELECTOR_POT A0
 
-int selector, lastsel; //math counter
+static const int rs = 7, en = 8, d4 = 9, d5 = 10, d6 = 11, d7 = 12;
+extern LiquidCrystal e_lcd(rs, en, d4, d5, d6, d7);
+
 const int max_analog_val = 1023;
-double d = 0, td = 0, tad = 0;     //distance, total distance, total average distance
-double v = -1, av = -1, tav = -1;     //velocity
-double te, tte;        //time elapsed
-double power, tpower;
 
-//aesthetic purposes
-byte inner_pipe_r[8] = { 0b00001, 0b00001, 0b00001, 0b00001, 0b00001, 0b00001, 0b00001, 0b00001 };
-byte inner_pipe_l[8] = { 0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b10000 };
-byte larrow[8]       = { 0b00010, 0b00110, 0b01111, 0b11111, 0b11111, 0b01111, 0b00110, 0b00010 };
-byte rarrow[8]       = { 0b01000, 0b01100, 0b11110, 0b11111, 0b11111, 0b11110, 0b01100, 0b01000 };
-byte kms[8]          = { 0b10010, 0b10100, 0b11000, 0b10110, 0b00000, 0b00000, 0b11010, 0b10101 };
-byte time[8]         = { 0b00000, 0b01110, 0b11011, 0b11011, 0b11001, 0b11111, 0b01110, 0b00000 };
+int current_selection, previous_selection;
+//distance
+double trip_distance;
+double total_distance;
+double average_trip_distance;
 
-void setup() {
+//velocity
+double velocity;
+double current_average_velocity;
+double average_trip_velocity;
+
+//time
+double time_elapsed;
+double total_time;
+double average_trip_time;
+
+//power
+double power;
+double total_power;
+double average_trip_power;
+
+void setup()
+{
   Serial.begin(9600);
-  pinMode(pick, INPUT_PULLUP);
-  //special characters to print to the lcd
-  lcd.createChar(0, inner_pipe_l);
-  lcd.createChar(1, inner_pipe_r);
-  lcd.createChar(2, larrow);
-  lcd.createChar(3, rarrow);
-  lcd.createChar(4, kms);
-  lcd.createChar(5, time);
+  pinMode(PICK_BUTTON, INPUT_PULLUP);
 
-  lcd.begin(16, 2);
+  //builds custom characters to be displayed
+  const byte inner_pipe_right[8]  = { 0b00001, 0b00001, 0b00001, 0b00001, 0b00001, 0b00001, 0b00001, 0b00001 };
+  const byte inner_pipe_left[8]   = { 0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b10000 };
+  const byte left_arrow[8]        = { 0b00010, 0b00110, 0b01111, 0b11111, 0b11111, 0b01111, 0b00110, 0b00010 };
+  const byte right_arrow[8]       = { 0b01000, 0b01100, 0b11110, 0b11111, 0b11111, 0b11110, 0b01100, 0b01000 };
+  const byte kms[8]               = { 0b10010, 0b10100, 0b11000, 0b10110, 0b00000, 0b00000, 0b11010, 0b10101 };
+  const byte clock[8]             = { 0b00000, 0b01110, 0b11011, 0b11011, 0b11001, 0b11111, 0b01110, 0b00000 };
+  
+  e_lcd.createChar(0, inner_pipe_left);
+  e_lcd.createChar(1, inner_pipe_right);
+  e_lcd.createChar(2, left_arrow);
+  e_lcd.createChar(3, right_arrow);
+  e_lcd.createChar(4, kms);
+  e_lcd.createChar(5, clock);
+
+  e_lcd.begin(16, 2);
+
+  //initialisations:
+  trip_distance = 0;
+  total_distance = 0;
+  average_trip_distance = 0;
 }
 
 //timer
@@ -45,10 +70,25 @@ int math_count = 0;
 unsigned long start, lap;
 bool sensor_trigger = false;
 
+bool do_the_math();
+void speed_menu();
+void dist_menu();
+void time_menu();
+void power_menu();
+void print_the_menu();
+
+void loop() 
+{
+  current_selection = analogRead(SELECTOR_POT);
+  print_the_menu();
+  previous_selection = current_selection;
+}
+
 //ROUGH at the moment
 
 //returns true if any actual math has been done
-bool do_the_math(){
+bool do_the_math()
+{
   //magnet sensor
   int sensor = analogRead(A5);
 
@@ -62,7 +102,7 @@ bool do_the_math(){
 
   if(sensor > 520 && !sensor_trigger){
     math_count ++;
-    d += wheel_perimeter;
+    trip_distance += wheel_perimeter;
     sensor_trigger = true;
   }
 
@@ -70,7 +110,7 @@ bool do_the_math(){
   if(math_count == no_counts){
     lap = micros();
     
-    v = (no_counts * wheel_perimeter)/(lap - start);
+    velocity = (no_counts * wheel_perimeter)/(lap - start);
     
     math_count = 0;
     return true;
@@ -79,142 +119,140 @@ bool do_the_math(){
   return false;
 }
 
-void speed_menu(){
+void speed_menu()
+{
   clear_screen();
-  //times pressed;
-  int tp = 0;//0
-  //previous press
-  int cur_read = digitalRead(pick);
-  int pp = cur_read;
-  while(lastsel < selector + 20 && lastsel > selector - 20){
-    do_the_math();
 
-    selector = analogRead(A0);
-    cur_read = digitalRead(pick);
+  int times_pressed = 0;//0
+  int current_btn_read = digitalRead(PICK_BUTTON);
+  int previous_btn_read = current_btn_read;
+  
+  while(   previous_selection < current_selection + SELECTOR_TRESHOLD 
+        && previous_selection > current_selection - SELECTOR_TRESHOLD
+       )
+  {
+    current_btn_read = digitalRead(PICK_BUTTON);
 
-    if(pp != cur_read){
-      tp += 1;   
-      pp = cur_read;
-      if(tp % 2 == 0)
+    if(previous_btn_read != current_btn_read){
+      times_pressed += 1;   
+      previous_btn_read = current_btn_read;
+      if(times_pressed % 2 == 0)
         clear_screen();
     }
 
-    if(tp % 4 >= 2){
-      print_speed_averages(av, tav);
+    if(times_pressed % 4 >= 2){
+      print_speed_stats(current_average_velocity, average_trip_velocity);
     } 
     else
-      print_the_speed(v);
+      print_the_speed(velocity);
 
-    if(tp == 8) 
-      tp = 0;
+    if(times_pressed == 8) 
+      times_pressed = 0;
+
+    current_selection = analogRead(SELECTOR_POT);
   }
 }
 
-void dist_menu(){
+void dist_menu()
+{
   clear_screen();
   //times pressed
-  int tp = 0;//0
+  int times_pressed = 0;//0
   //previous press
-  int cur_read = digitalRead(pick);
-  int pp = cur_read;
+  int current_btn_read = digitalRead(PICK_BUTTON);
+  int previous_btn_read = current_btn_read;
 
-  while(lastsel < selector + 10 && lastsel > selector - 10){
-    do_the_math();
+  while(previous_selection < current_selection + SELECTOR_TRESHOLD && previous_selection > current_selection - SELECTOR_TRESHOLD)
+  {    
+    current_btn_read = digitalRead(PICK_BUTTON);
 
-    selector = analogRead(A0);
-    
-    cur_read = digitalRead(pick);
-
-    if(pp != cur_read){
-      tp += 1;   
-      pp = cur_read;
-      if(tp % 2 == 0)
+    if(previous_btn_read != current_btn_read){
+      times_pressed += 1;   
+      previous_btn_read = current_btn_read;
+      if(times_pressed % 2 == 0)
         clear_screen();
     }
 
-    if(tp % 4 >= 2){
-      print_dist_stats(td, tad);
+    if(times_pressed % 4 >= 2){
+      print_dist_stats(total_distance, average_trip_distance);
     } 
     else
-      print_the_dist(d);
+      print_the_dist(trip_distance);
 
-    if(tp == 8) 
-      tp = 0; 
-  }
-}
-
-void time_menu(){
-  clear_screen();
-  while(lastsel < selector + 10 && lastsel > selector - 10){
-    do_the_math();
-
-    selector = analogRead(A0);
-    lcd.setCursor(0, 0);
-    lcd.print(" it's time bro ");
-  }
-}
-
-void power_menu(){
-  clear_screen();
-  while(lastsel < selector + 10 && lastsel > selector - 10){
-    do_the_math();
+    if(times_pressed == 8) 
+      times_pressed = 0; 
     
-    selector = analogRead(A0);
-    lcd.setCursor(0, 0);
-    lcd.print("UNLIMITED POWER!");
+    current_selection = analogRead(SELECTOR_POT);
   }
 }
 
-void loop() {
-  selector = analogRead(A0);
-  pbars();
-  pspeed();
-  pdist();
-  ppower();
-  ptime();
+void time_menu()
+{
+  clear_screen();
+  while(previous_selection < current_selection + SELECTOR_TRESHOLD && previous_selection > current_selection - SELECTOR_TRESHOLD)
+  {
+    e_lcd.setCursor(0, 0);
+    e_lcd.print(" it's time bro ");
+    current_selection = analogRead(SELECTOR_POT);
+  }
+}
 
-  do_the_math();
+void power_menu()
+{
+  clear_screen();
+  while(previous_selection < current_selection + SELECTOR_TRESHOLD && previous_selection > current_selection - SELECTOR_TRESHOLD)
+  {
+    e_lcd.setCursor(0, 0);
+    e_lcd.print("UNLIMITED POWER!");
+    current_selection = analogRead(SELECTOR_POT);
+  }
+}
+
+void print_the_menu()
+{
+  print_bars();
+  print_word_speed();
+  print_word_dist();
+  print_word_power();
+  print_word_time();
 
   //speed
-  if(selector >= max_analog_val / 4 * 3){
-    psarr();
-    if(digitalRead(pick) == 0){
+  if(current_selection >= max_analog_val / 4 * 3){
+    print_speed_arrows();
+    if(digitalRead(PICK_BUTTON) == 0){
       speed_menu();
     }
   }
   else
-    dsarr();
+    delete_speed_arrows();
   
   //distance
-  if(selector < max_analog_val / 4 * 3 && selector >= max_analog_val / 2){    
-    pdarr();
-    if(digitalRead(pick) == 0){
+  if(current_selection < max_analog_val / 4 * 3 && current_selection >= max_analog_val / 2){    
+    print_distance_arrows();
+    if(digitalRead(PICK_BUTTON) == 0){
       dist_menu();
     }
   }
   else
-    ddarr();
+    delete_distance_arrows();
   
   //time
-  if(selector < max_analog_val / 2 && selector >= max_analog_val / 4){
-    ptarr();
-    if(digitalRead(pick) == 0){
+  if(current_selection < max_analog_val / 2 && current_selection >= max_analog_val / 4){
+    print_time_arrows();
+    if(digitalRead(PICK_BUTTON) == 0){
       time_menu();
     }
   }
   else
-    dtarr();
+    delete_time_arrows();
 
   //power
-  if(selector < max_analog_val / 4){
-    pparr();
-    if(digitalRead(pick) == 0){
+  if(current_selection < max_analog_val / 4){
+    print_power_arrows();
+    if(digitalRead(PICK_BUTTON) == 0){
       power_menu();
     }
   }
   else
-    dparr();  
-
-  lastsel = selector;
-    
+    delete_power_arrows();  
 }
