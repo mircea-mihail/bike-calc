@@ -1,64 +1,62 @@
 #include <LiquidCrystal.h>
 #include "print_stats.h"
 
-extern LiquidCrystal lcd;
+extern LiquidCrystal e_lcd;
 
-//instatnt speed
-void print_the_speed(double v){
-  lcd.setCursor(0, 0);
-  lcd.print("speed");
-  lcd.setCursor(12, 0);
-  lcd.print("km/h");
+void print_the_speed(double velocity){
+  e_lcd.setCursor(0, 0);
+  e_lcd.print("speed");
+  e_lcd.setCursor(12, 0);
+  e_lcd.print("km/h");
 
-  lcd.setCursor(6, 0);
-  lcd.print(v);
+  e_lcd.setCursor(6, 0);
+  e_lcd.print(velocity);
   
 }
 
-//average velocity, total average velocity
-void print_speed_averages(double av, double tav){
+void print_speed_averages(double current_average_velocity, double average_trip_velocity){
   
-  lcd.setCursor(0, 0);
-  lcd.print("avg");
-  lcd.setCursor(12, 0);
-  lcd.print("km/h");
-  lcd.setCursor(6, 0);
-  lcd.print(av);
+  e_lcd.setCursor(0, 0);
+  e_lcd.print("avg");
+  e_lcd.setCursor(12, 0);
+  e_lcd.print("km/h");
+  e_lcd.setCursor(6, 0);
+  e_lcd.print(current_average_velocity);
 
-  lcd.setCursor(0, 1);
-  lcd.print("t-avg");
-  lcd.setCursor(12, 1);
-  lcd.print("km/h");
-  lcd.setCursor(6, 1);
-  lcd.print(tav);
+  e_lcd.setCursor(0, 1);
+  e_lcd.print("t-avg");
+  e_lcd.setCursor(12, 1);
+  e_lcd.print("km/h");
+  e_lcd.setCursor(6, 1);
+  e_lcd.print(average_trip_velocity);
 }
 
 //trip distance
-void print_the_dist(double d){
-  lcd.setCursor(0, 0);
-  lcd.print("trip");
-  lcd.setCursor(14, 0);
-  lcd.print("km");
+void print_the_dist(double trip_distance){
+  e_lcd.setCursor(0, 0);
+  e_lcd.print("trip");
+  e_lcd.setCursor(14, 0);
+  e_lcd.print("km");
 
-  lcd.setCursor(6, 0);
-  lcd.print(d);
+  e_lcd.setCursor(6, 0);
+  e_lcd.print(trip_distance);
 }
 
 //total distance, total average distance
-void print_dist_stats(double td, double tad){
-  lcd.setCursor(0, 0);
-  lcd.print("t-avg");
-  lcd.setCursor(14, 0);
-  lcd.print("km");
+void print_dist_stats(double total_distance, double average_trip_distance){
+  e_lcd.setCursor(0, 0);
+  e_lcd.print("t-avg");
+  e_lcd.setCursor(14, 0);
+  e_lcd.print("km");
 
-  lcd.setCursor(6, 0);
-  lcd.print(td);
+  e_lcd.setCursor(6, 0);
+  e_lcd.print(total_distance);
 
-  lcd.setCursor(0, 1);
-  lcd.print("total");
-  lcd.setCursor(14, 1);
-  lcd.print("km");
+  e_lcd.setCursor(0, 1);
+  e_lcd.print("total");
+  e_lcd.setCursor(14, 1);
+  e_lcd.print("km");
     
-  lcd.setCursor(6, 1);
-  lcd.print(tad);
+  e_lcd.setCursor(6, 1);
+  e_lcd.print(average_trip_distance);
 }
