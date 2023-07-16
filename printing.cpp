@@ -1,120 +1,127 @@
 #include <LiquidCrystal.h>
 #include "printing.h"
 
-extern LiquidCrystal lcd;
+#define INNER_PIPE_LEFT 0 
+#define INNER_PIPE_RIGHT 1
+#define LEFT_ARROW 2
+#define RIGHT_ARROW 3
+#define KMS 4
+#define CLOCK 5
+
+extern LiquidCrystal e_lcd;
 
 //print bars
-void pbars(){
-  lcd.setCursor(7, 0);
-  lcd.write(byte(1));
-  lcd.write(byte(0));
+void print_bars(){
+  e_lcd.setCursor(7, 0);
+  e_lcd.write(byte(INNER_PIPE_RIGHT));
+  e_lcd.write(byte(INNER_PIPE_LEFT));
   
-  lcd.setCursor(7, 1);
-  lcd.write(byte(1));
-  lcd.write(byte(0));
+  e_lcd.setCursor(7, 1);
+  e_lcd.write(byte(INNER_PIPE_RIGHT));
+  e_lcd.write(byte(INNER_PIPE_LEFT));
 }
 
 //print speed arrows
-void psarr(){
-  lcd.setCursor(0, 0);
-  lcd.write(byte(3));
+void print_speed_arrows(){
+  e_lcd.setCursor(0, 0);
+  e_lcd.write(byte(RIGHT_ARROW));
 
-  lcd.setCursor(6, 0);
-  lcd.write(byte(2));
+  e_lcd.setCursor(6, 0);
+  e_lcd.write(byte(LEFT_ARROW));
 }
 
 //delete speed arrows
-void dsarr(){
-  lcd.setCursor(0, 0);
-  lcd.write(' ');
+void delete_speed_arrows(){
+  e_lcd.setCursor(0, 0);
+  e_lcd.write(' ');
   
-  lcd.setCursor(6, 0);
-  lcd.write(' ');
+  e_lcd.setCursor(6, 0);
+  e_lcd.write(' ');
 }
 
 //print distance arrows
-void pdarr(){
-  lcd.setCursor(9, 0);
-  lcd.write(byte(3));
+void print_distance_arrows(){
+  e_lcd.setCursor(9, 0);
+  e_lcd.write(byte(RIGHT_ARROW));
 
-  lcd.setCursor(15, 0);
-  lcd.write(byte(2));
+  e_lcd.setCursor(15, 0);
+  e_lcd.write(byte(LEFT_ARROW));
 }
 
 //delete distance arrows
-void ddarr(){
-  lcd.setCursor(9, 0);
-  lcd.write(' ');
+void delete_distance_arrows(){
+  e_lcd.setCursor(9, 0);
+  e_lcd.write(' ');
 
-  lcd.setCursor(15, 0);
-  lcd.write(' ');
+  e_lcd.setCursor(15, 0);
+  e_lcd.write(' ');
 }
 
 //print power arrows
-void pparr(){
-  lcd.setCursor(0, 1);
-  lcd.write(byte(3));
+void print_power_arrows(){
+  e_lcd.setCursor(0, 1);
+  e_lcd.write(byte(RIGHT_ARROW));
 
-  lcd.setCursor(6, 1);
-  lcd.write(byte(2));
+  e_lcd.setCursor(6, 1);
+  e_lcd.write(byte(LEFT_ARROW));
 }
 
 //delete power arrows
-void dparr(){
-  lcd.setCursor(0, 1);
-  lcd.write(' ');
+void delete_power_arrows(){
+  e_lcd.setCursor(0, 1);
+  e_lcd.write(' ');
 
-  lcd.setCursor(6, 1);
-  lcd.write(' ');
+  e_lcd.setCursor(6, 1);
+  e_lcd.write(' ');
 }
 
 //print time arrows
-void ptarr(){
-  lcd.setCursor(9, 1);
-  lcd.write(byte(3));
+void print_time_arrows(){
+  e_lcd.setCursor(9, 1);
+  e_lcd.write(byte(RIGHT_ARROW));
 
-  lcd.setCursor(15, 1);
-  lcd.write(byte(2));
+  e_lcd.setCursor(15, 1);
+  e_lcd.write(byte(LEFT_ARROW));
 }
 
 //delete time arrows
-void dtarr(){
-  lcd.setCursor(9, 1);
-  lcd.write(' ');
+void delete_time_arrows(){
+  e_lcd.setCursor(9, 1);
+  e_lcd.write(' ');
 
-  lcd.setCursor(15, 1);
-  lcd.write(' ');
+  e_lcd.setCursor(15, 1);
+  e_lcd.write(' ');
 }
 
 //print "speed"
-void pspeed(){
-  lcd.setCursor(1, 0);
-  lcd.print("speed");    
+void print_word_speed(){
+  e_lcd.setCursor(1, 0);
+  e_lcd.print("speed");    
 }
 
 //print "dist"
-void pdist(){
-  lcd.setCursor(10, 0);
-  lcd.print("dist");
-  lcd.write(byte(4));
+void print_word_dist(){
+  e_lcd.setCursor(10, 0);
+  e_lcd.print("dist");
+  e_lcd.write(byte(KMS));
 }
 
 //print "power"
-void ppower(){
-  lcd.setCursor(1, 1);
-  lcd.print("power"); 
+void print_word_power(){
+  e_lcd.setCursor(1, 1);
+  e_lcd.print("power"); 
 }
 
 //print "time"
-void ptime(){
-  lcd.setCursor(10, 1);
-  lcd.print("time"); 
-  lcd.write(byte(5));
+void print_word_time(){
+  e_lcd.setCursor(10, 1);
+  e_lcd.print("time"); 
+  e_lcd.write(byte(CLOCK));
 }
 
 void clear_screen(){
-  lcd.setCursor(0, 0);
-  lcd.print("                ");
-  lcd.setCursor(0, 1);
-  lcd.print("                ");
+  e_lcd.setCursor(0, 0);
+  e_lcd.print("                ");
+  e_lcd.setCursor(0, 1);
+  e_lcd.print("                ");
 }
