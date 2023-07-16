@@ -14,7 +14,7 @@ void print_the_speed(double velocity){
   
 }
 
-void print_speed_averages(double current_average_velocity, double average_trip_velocity){
+void print_speed_stats(double current_average_velocity, double average_trip_velocity){
   
   e_lcd.setCursor(0, 0);
   e_lcd.print("avg");
