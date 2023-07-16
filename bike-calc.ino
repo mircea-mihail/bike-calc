@@ -119,9 +119,10 @@ bool do_the_math()
   return false;
 }
 
-void speed_menu()
+void print_sub_menu(void (*print_main_value)(double), void(*print_stats)(double, double), 
+              double main_value, double first_stat, double second_stat )
 {
-  clear_screen();
+   clear_screen();
 
   int times_pressed = 0;//0
   int current_btn_read = digitalRead(PICK_BUTTON);
@@ -141,47 +142,14 @@ void speed_menu()
     }
 
     if(times_pressed % 4 >= 2){
-      print_speed_stats(current_average_velocity, average_trip_velocity);
+      (*print_stats)(first_stat, second_stat);
     } 
     else
-      print_the_speed(velocity);
+      (*print_main_value)(main_value);
 
     if(times_pressed == 8) 
       times_pressed = 0;
 
-    current_selection = analogRead(SELECTOR_POT);
-  }
-}
-
-void dist_menu()
-{
-  clear_screen();
-  //times pressed
-  int times_pressed = 0;//0
-  //previous press
-  int current_btn_read = digitalRead(PICK_BUTTON);
-  int previous_btn_read = current_btn_read;
-
-  while(previous_selection < current_selection + SELECTOR_TRESHOLD && previous_selection > current_selection - SELECTOR_TRESHOLD)
-  {    
-    current_btn_read = digitalRead(PICK_BUTTON);
-
-    if(previous_btn_read != current_btn_read){
-      times_pressed += 1;   
-      previous_btn_read = current_btn_read;
-      if(times_pressed % 2 == 0)
-        clear_screen();
-    }
-
-    if(times_pressed % 4 >= 2){
-      print_dist_stats(total_distance, average_trip_distance);
-    } 
-    else
-      print_the_dist(trip_distance);
-
-    if(times_pressed == 8) 
-      times_pressed = 0; 
-    
     current_selection = analogRead(SELECTOR_POT);
   }
 }
@@ -220,7 +188,9 @@ void print_the_menu()
   if(current_selection >= max_analog_val / 4 * 3){
     print_speed_arrows();
     if(digitalRead(PICK_BUTTON) == 0){
-      speed_menu();
+      // speed_menu();
+      print_sub_menu((void (*)(double))(&print_the_speed), (void (*)(double, double))(&print_speed_stats),
+                      velocity, current_average_velocity, average_trip_velocity);
     }
   }
   else
@@ -230,7 +200,8 @@ void print_the_menu()
   if(current_selection < max_analog_val / 4 * 3 && current_selection >= max_analog_val / 2){    
     print_distance_arrows();
     if(digitalRead(PICK_BUTTON) == 0){
-      dist_menu();
+      print_sub_menu((void (*)(double))(&print_the_dist), (void (*)(double, double))(&print_dist_stats),
+                      trip_distance, total_distance, average_trip_distance);
     }
   }
   else
