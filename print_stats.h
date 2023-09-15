@@ -9,4 +9,7 @@ void print_speed_stats(double current_average_velocity, double average_trip_velo
 void print_the_dist(double trip_distance);
 void print_dist_stats(double total_distance, double average_trip_distance);
 
+void print_the_time(double time_elapsed);
+void print_time_stats(double total_time, double average_trip_time);
+
 #endif

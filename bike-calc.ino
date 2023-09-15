@@ -9,28 +9,28 @@
 static const int rs = 7, en = 8, d4 = 9, d5 = 10, d6 = 11, d7 = 12;
 extern LiquidCrystal e_lcd(rs, en, d4, d5, d6, d7);
 
-const int max_analog_val = 1023;
+const int g_nMaxAnalogVal = 1023;
 
 int current_selection, previous_selection;
 //distance
-double trip_distance;
-double total_distance;
-double average_trip_distance;
+double g_fTripDistance;
+double g_fTotalDistance;
+double g_fAverageTripDistance;
 
 //velocity
-double velocity;
-double current_average_velocity;
-double average_trip_velocity;
+double g_fVelocity;
+double g_fCurrentAverageVelocity;
+double g_fAverageTripVelocity;
 
 //time
-double time_elapsed;
-double total_time;
-double average_trip_time;
+double g_fTimeElapsed;
+double g_fTotalTime;
+double g_fAverageTripTime;
 
 //power
-double power;
-double total_power;
-double average_trip_power;
+double g_fPower;
+double g_fTotalPower;
+double g_fAverageTripPower;
 
 void setup()
 {
@@ -55,22 +55,19 @@ void setup()
   e_lcd.begin(16, 2);
 
   //initialisations:
-  trip_distance = 0;
-  total_distance = 0;
-  average_trip_distance = 0;
+  g_fTripDistance = 0;
+  g_fTotalDistance = 0;
+  g_fAverageTripDistance = 0;
 }
 
 //timer
 //math
 //stop time, do math
 //start timer
-const double wheel_perimeter = 76.2;//wheel size
-const int no_counts = 4;
-int math_count = 0;
-unsigned long start, lap;
-bool sensor_trigger = false;
+#define WHEEL_PERIMETER 76.2 //wheel size
+#define DESIRED_MAGNET_DETECTIONS 4
 
-bool do_the_math();
+void do_the_math();
 void speed_menu();
 void dist_menu();
 void time_menu();
@@ -84,47 +81,52 @@ void loop()
   previous_selection = current_selection;
 }
 
+
 //ROUGH at the moment
 
 //returns true if any actual math has been done
-bool do_the_math()
+void do_the_math()
 {
-  //magnet sensor
-  int sensor = analogRead(A5);
+  int nMagnetDetections = 0;
+  unsigned long unStartTimer, unLapTimer;
+  bool bMagnetSensorTrigger = false;
 
-  if(math_count == 0){
-    start = micros();
+  while(true)
+  {
+    //magnet sensor
+    int nSensorRead = analogRead(A5);
+  
+    if(nMagnetDetections == 0){
+      unStartTimer = micros();
+    }
+  
+    if(nSensorRead <= 520){
+      bMagnetSensorTrigger = false;
+    }
+  
+    if(nSensorRead > 520 && !bMagnetSensorTrigger){
+      nMagnetDetections ++;
+      g_fTripDistance += WHEEL_PERIMETER;
+      bMagnetSensorTrigger = true;
+    }
+  
+    //after a number of full wheel rotations counted by nMagnetDetections, the speed is calculated
+    if(nMagnetDetections == DESIRED_MAGNET_DETECTIONS){
+      unLapTimer = micros();
+      
+      g_fVelocity = (DESIRED_MAGNET_DETECTIONS * WHEEL_PERIMETER)/(unLapTimer - unStartTimer);
+      
+      nMagnetDetections = 0;
+    }
   }
-
-  if(sensor <= 520){
-    sensor_trigger = false;
-  }
-
-  if(sensor > 520 && !sensor_trigger){
-    math_count ++;
-    trip_distance += wheel_perimeter;
-    sensor_trigger = true;
-  }
-
-  //after a number of wheel rotations counted by math_count, the speed is calculated
-  if(math_count == no_counts){
-    lap = micros();
-    
-    velocity = (no_counts * wheel_perimeter)/(lap - start);
-    
-    math_count = 0;
-    return true;
-  }
-
-  return false;
 }
 
-void print_sub_menu(void (*print_main_value)(double), void(*print_stats)(double, double), 
+void print_sub_menu(void (*print_main_value)(double), void (*print_stats)(double, double), 
               double main_value, double first_stat, double second_stat )
 {
    clear_screen();
 
-  int times_pressed = 0;//0
+  int times_pressed = 0;
   int current_btn_read = digitalRead(PICK_BUTTON);
   int previous_btn_read = current_btn_read;
   
@@ -185,30 +187,30 @@ void print_the_menu()
   print_word_time();
 
   //speed
-  if(current_selection >= max_analog_val / 4 * 3){
+  if(current_selection >= g_nMaxAnalogVal / 4 * 3){
     print_speed_arrows();
     if(digitalRead(PICK_BUTTON) == 0){
       // speed_menu();
       print_sub_menu((void (*)(double))(&print_the_speed), (void (*)(double, double))(&print_speed_stats),
-                      velocity, current_average_velocity, average_trip_velocity);
+                      g_fVelocity, g_fCurrentAverageVelocity, g_fAverageTripVelocity);
     }
   }
   else
     delete_speed_arrows();
   
   //distance
-  if(current_selection < max_analog_val / 4 * 3 && current_selection >= max_analog_val / 2){    
+  if(current_selection < g_nMaxAnalogVal / 4 * 3 && current_selection >= g_nMaxAnalogVal / 2){    
     print_distance_arrows();
     if(digitalRead(PICK_BUTTON) == 0){
       print_sub_menu((void (*)(double))(&print_the_dist), (void (*)(double, double))(&print_dist_stats),
-                      trip_distance, total_distance, average_trip_distance);
+                      g_fTripDistance, g_fTotalDistance, g_fAverageTripDistance);
     }
   }
   else
     delete_distance_arrows();
   
   //time
-  if(current_selection < max_analog_val / 2 && current_selection >= max_analog_val / 4){
+  if(current_selection < g_nMaxAnalogVal / 2 && current_selection >= g_nMaxAnalogVal / 4){
     print_time_arrows();
     if(digitalRead(PICK_BUTTON) == 0){
       time_menu();
@@ -218,7 +220,7 @@ void print_the_menu()
     delete_time_arrows();
 
   //power
-  if(current_selection < max_analog_val / 4){
+  if(current_selection < g_nMaxAnalogVal / 4){
     print_power_arrows();
     if(digitalRead(PICK_BUTTON) == 0){
       power_menu();
