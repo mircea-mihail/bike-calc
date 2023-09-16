@@ -64,7 +64,7 @@ void setup()
 //math
 //stop time, do math
 //start timer
-#define WHEEL_PERIMETER 76.2 //wheel size
+#define WHEEL_PERIMETER 1//76.2 //wheel size
 #define DESIRED_MAGNET_DETECTIONS 4
 
 void do_the_math();
@@ -81,50 +81,49 @@ void loop()
   previous_selection = current_selection;
 }
 
+int g_nMagnetDetections = 0;
+unsigned long g_unStartTimer, g_unLapTimer;
+bool g_bMagnetSensorTrigger = false;
 
-//ROUGH at the moment
+void debugPrintVar(int p_nVar){
+  e_lcd.clear();
+  e_lcd.print(p_nVar);
+  delay(1000);
+}
 
 //returns true if any actual math has been done
 void do_the_math()
 {
-  int nMagnetDetections = 0;
-  unsigned long unStartTimer, unLapTimer;
-  bool bMagnetSensorTrigger = false;
+  int nSensorRead = analogRead(A5);
 
-  while(true)
-  {
-    //magnet sensor
-    int nSensorRead = analogRead(A5);
+  if(g_nMagnetDetections == 0){
+    g_unStartTimer = micros();
+  }
+
+  if(nSensorRead <= 520){
+    g_bMagnetSensorTrigger = false;
+  }
   
-    if(nMagnetDetections == 0){
-      unStartTimer = micros();
-    }
-  
-    if(nSensorRead <= 520){
-      bMagnetSensorTrigger = false;
-    }
-  
-    if(nSensorRead > 520 && !bMagnetSensorTrigger){
-      nMagnetDetections ++;
-      g_fTripDistance += WHEEL_PERIMETER;
-      bMagnetSensorTrigger = true;
-    }
-  
-    //after a number of full wheel rotations counted by nMagnetDetections, the speed is calculated
-    if(nMagnetDetections == DESIRED_MAGNET_DETECTIONS){
-      unLapTimer = micros();
-      
-      g_fVelocity = (DESIRED_MAGNET_DETECTIONS * WHEEL_PERIMETER)/(unLapTimer - unStartTimer);
-      
-      nMagnetDetections = 0;
-    }
+  if(nSensorRead > 520 && !g_bMagnetSensorTrigger){
+    g_nMagnetDetections ++;
+    g_fTripDistance += WHEEL_PERIMETER;
+    g_bMagnetSensorTrigger = true;
+  }
+
+  //after a number of full wheel rotations counted by nMagnetDetections, the speed is calculated
+  if(g_nMagnetDetections == DESIRED_MAGNET_DETECTIONS){
+    g_unLapTimer = micros();
+    
+    g_fVelocity = (DESIRED_MAGNET_DETECTIONS * WHEEL_PERIMETER)/(g_unLapTimer - g_unStartTimer);
+    
+    g_nMagnetDetections = 0;
   }
 }
 
 void print_sub_menu(void (*print_main_value)(double), void (*print_stats)(double, double), 
-              double main_value, double first_stat, double second_stat )
+              double &main_value, double &first_stat, double &second_stat )
 {
-   clear_screen();
+  clear_screen();
 
   int times_pressed = 0;
   int current_btn_read = digitalRead(PICK_BUTTON);
@@ -134,6 +133,7 @@ void print_sub_menu(void (*print_main_value)(double), void (*print_stats)(double
         && previous_selection > current_selection - SELECTOR_TRESHOLD
        )
   {
+    do_the_math();
     current_btn_read = digitalRead(PICK_BUTTON);
 
     if(previous_btn_read != current_btn_read){
@@ -180,6 +180,7 @@ void power_menu()
 
 void print_the_menu()
 {
+  do_the_math();
   print_bars();
   print_word_speed();
   print_word_dist();
